@@ -9697,10 +9697,6 @@ py-beep-if-tab-change\t\tring the bell if `tab-width' is changed
   ;; shell-complete end
   ;; Run the mode hook.  Note that py-mode-hook is deprecated.
   (defvar py-mode-map python-mode-map)
-  (run-mode-hooks
-   (if python-mode-hook
-       'python-mode-hook
-     'py-mode-hook))
   (when py-start-run-py-shell
     ;; py-shell may split window, provide restore
     (window-configuration-to-register 213465879)
