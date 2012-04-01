@@ -47,6 +47,9 @@ With optional C-u an indent with length `py-indent-offset' is inserted unconditi
 When called interactivly with C-u, ignore dedenting rules for block closing statements
 (e.g. return, raise, break, continue, pass)
 
+An optional C-u followed by a numeric argument neither 1 nor 4 will switch off `py-smart-indentation' for this execution. This permits to correct allowed but unwanted indents.
+Similar to `toggle-py-smart-indentation' resp. `py-smart-indentation-off' followed by TAB.
+
 This function is normally used by `indent-line-function' resp.
 TAB.
 Returns current indentation 
@@ -56,30 +59,32 @@ When indent is set back manually, this is honoured in following lines.
 * py-newline-and-dedent
    Add a newline and indent to one level below current.
 Returns column. 
-* toggle-indent-tabs-mode
+* py-toggle-indent-tabs-mode
    Toggle `indent-tabs-mode'.
 
 Returns value of `indent-tabs-mode' switched to. 
-* indent-tabs-mode
+* py-indent-tabs-mode
    With positive ARG switch `indent-tabs-mode' on.
 
 With negative ARG switch `indent-tabs-mode' off.
 Returns value of `indent-tabs-mode' switched to. 
-* indent-tabs-mode-on
+* py-indent-tabs-mode-on
    Switch `indent-tabs-mode' on. 
-* indent-tabs-mode-off
+* py-indent-tabs-mode-off
    Switch `indent-tabs-mode' on. 
 * py-guess-indent-offset
    Guess a value for, and change, `py-indent-offset'.
 
 By default, make a buffer-local copy of `py-indent-offset' with the
 new value.
-With optional argument GLOBAL change the global value of `py-indent-offset'. 
-* py-narrow-to-defun
-   Make text outside current defun invisible.
+With optional argument GLOBAL change the global value of `py-indent-offset'.
 
-The defun visible is the one that contains point or follows point.
-Optional CLASS is passed directly to `py-beginning-of-def-or-class'.
+Indent might be guessed savely only from beginning of a block.
+Returns `py-indent-offset'
+* py-narrow-to-defun
+   Make text outside current def or class invisible.
+
+The defun visible is the one that contains point or follows point. 
 * py-shift-left
    Dedent region according to `py-indent-offset' by COUNT times.
 
@@ -260,10 +265,10 @@ initial line; and comment lines beginning in column 1 are ignored.
    Returns beginning of expression position. 
 * py-end-of-expression-position
    Returns end of expression position. 
-* py-beginning-of-minor-expression-position
-   Returns beginning of minor-expression position. 
-* py-end-of-minor-expression-position
-   Returns end of minor-expression position. 
+* py-beginning-of-partial-expression-position
+   Returns beginning of partial-expression position. 
+* py-end-of-partial-expression-position
+   Returns end of partial-expression position. 
 * py-bounds-of-statement
    Returns bounds of statement at point.
 
@@ -308,10 +313,10 @@ Returns a list, whose car is beg, cdr - end.
 
 With optional POSITION, a number, report bounds of expression at POSITION.
 Returns a list, whose car is beg, cdr - end.
-* py-bounds-of-minor-expression
-   Returns bounds of minor-expression at point.
+* py-bounds-of-partial-expression
+   Returns bounds of partial-expression at point.
 
-With optional POSITION, a number, report bounds of minor-expression at POSITION.
+With optional POSITION, a number, report bounds of partial-expression at POSITION.
 Returns a list, whose car is beg, cdr - end.
 * py-bounds-of-declarations
    Bounds of consecutive multitude of assigments resp. statements around point.
@@ -368,8 +373,8 @@ class C(B):
     def method(self, arg):
         super().method(arg) # This does the same thing as:
                                # super(C, self).method(arg)
-* py-nesting-level
-   Accepts the output of `parse-partial-sexp'. 
+
+Returns the string inserted. 
 * py-compute-indentation
    Compute Python indentation.
 
@@ -387,12 +392,6 @@ Optional ARG indicates a start-position for `parse-partial-sexp'.
    Return end position, nil if not inside.
 
 Optional ARG indicates a start-position for `parse-partial-sexp'.
-* py-preceding-line-backslashed-p
-   Return t if preceding line is a backslashed continuation line. 
-* py-current-line-backslashed-p
-   Return t if current line is a backslashed continuation line. 
-* py-escaped
-   Return t if char is preceded by an odd number of backslashes. 
 * py-in-triplequoted-string-p
    Returns character address of start tqs-string, nil if not inside. 
 * py-in-string-p
@@ -403,12 +402,28 @@ Optional ARG indicates a start-position for `parse-partial-sexp'.
 Result is useful for booleans too: (when (py-in-statement-p)...)
 will work.
 
+* py-beginning-of-paragraph-p
+   Returns position, if cursor is at the beginning of a paragraph, nil otherwise. 
+* py-beginning-of-line-p
+   Returns position, if cursor is at the beginning of a line, nil otherwise. 
+* py-beginning-of-statement-p
+   Returns position, if cursor is at the beginning of a statement, nil otherwise. 
 * py-beginning-of-expression-p
    Returns position, if cursor is at the beginning of a expression, nil otherwise. 
 * py-beginning-of-partial-expression-p
-   Returns position, if cursor is at the beginning of a expression, nil otherwise. 
-* py-beginning-of-statement-p
-   Returns position, if cursor is at the beginning of a statement, nil otherwise. 
+   Returns position, if cursor is at the beginning of a partial-expression, nil otherwise. 
+* py-beginning-of-block-p
+   Returns position, if cursor is at the beginning of a block, nil otherwise. 
+* py-beginning-of-clause-p
+   Returns position, if cursor is at the beginning of a clause, nil otherwise. 
+* py-beginning-of-block-or-clause-p
+   Returns position, if cursor is at the beginning of a block-or-clause, nil otherwise. 
+* py-beginning-of-def-p
+   Returns position, if cursor is at the beginning of a def, nil otherwise. 
+* py-beginning-of-class-p
+   Returns position, if cursor is at the beginning of a class, nil otherwise. 
+* py-beginning-of-def-or-class-p
+   Returns position, if cursor is at the beginning of a def-or-class, nil otherwise. 
 * py-statement-opens-block-p
    Return position if the current statement opens a block
 in stricter or wider sense.
@@ -437,8 +452,6 @@ See customizable variables `py-current-defun-show' and `py-current-defun-delay'.
 
 Put point inside the parentheses of a multiline import and hit
 M-x py-sort-imports to sort the imports lexicographically
-* empty-line-p
-   Returns t if cursor is at an line with nothing but whitespace-characters, nil otherwise.
 * py-count-lines
    Count lines in buffer, optional without given boundaries.
 Ignores common region.
@@ -447,95 +460,113 @@ See http://debbugs.gnu.org/cgi/bugreport.cgi?bug=7115
 * py-which-function
    Return the name of the function or class, if curser is in, return nil otherwise. 
 * py-beginning-of-block
-   Looks up for nearest opening block, i.e. compound statement
-
-Returns position reached, if any, nil otherwise.
-
-Referring python program structures see for example:
-http://docs.python.org/reference/compound_stmts.html
-* py-beginning-of-if-block
-   Looks up for nearest opening if-block, i.e. compound statement
-
-Returns position reached, if any, nil otherwise.
-
-Referring python program structures see for example:
-http://docs.python.org/reference/compound_stmts.html
-* py-beginning-of-try-block
-   Looks up for nearest opening try-block, i.e. compound statement.
-
-Returns position reached, if any, nil otherwise.
+   Returns beginning of block if successful, nil otherwise.
 
 Referring python program structures see for example:
 http://docs.python.org/reference/compound_stmts.html
 * py-end-of-block
-   Go to the end of a compound statement.
+   Go to the end of block.
+
+Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-beginning-of-clause
+   Returns beginning of clause if successful, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-end-of-clause
+   Go to the end of clause.
 
 Returns position reached, if any, nil otherwise.
 
 Referring python program structures see for example:
 http://docs.python.org/reference/compound_stmts.html
 * py-beginning-of-block-or-clause
-   Looks up for nearest opening clause or block.
-
-With universal argument looks for next compound statements
-i.e. blocks only.
-
-Returns position reached, if any, nil otherwise.
+   Returns beginning of block-or-clause if successful, nil otherwise.
 
 Referring python program structures see for example:
 http://docs.python.org/reference/compound_stmts.html
 * py-end-of-block-or-clause
-   Without arg, go to the end of a compound statement.
-
-With arg , move point to end of clause at point.
-Returns position reached, if any, nil otherwise.
-
-Referring python program structures see for example:
-http://docs.python.org/reference/compound_stmts.html
-* py-beginning-of-class
-   Move point to start of next `class'.
-
-See also `py-beginning-of-def-or-class'.
-Returns position reached, if any, nil otherwise.
-* py-end-of-class
-   Move point beyond next method definition.
-
-Returns position reached, if any, nil otherwise.
-* py-beginning-of-clause
-   Looks up for nearest opening clause, i.e. a compound statements
-subform.
-
-Returns position reached, if any, nil otherwise.
-
-Referring python program structures see for example:
-http://docs.python.org/reference/compound_stmts.html
-* py-end-of-clause
-   Without arg, go to the end of a compound statement.
-
-With arg , move point to end of clause at point.
+   Go to the end of block-or-clause.
 
 Returns position reached, if any, nil otherwise.
 
 Referring python program structures see for example:
 http://docs.python.org/reference/compound_stmts.html
 * py-beginning-of-def
-   Move point to start of `def'.
+   Returns beginning of def if successful, nil otherwise.
 
-Returns position reached, if any, nil otherwise 
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
 * py-end-of-def
-   Move point beyond next method definition.
+   Go to the end of def.
 
 Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-beginning-of-class
+   Returns beginning of class if successful, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-end-of-class
+   Go to the end of class.
+
+Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
 * py-beginning-of-def-or-class
-   Move point to start of `def' or `class', whatever is next.
+   Returns beginning of def-or-class if successful, nil otherwise.
 
-With optional universal arg CLASS, move to the beginn of class definition.
-Returns position reached, if any, nil otherwise 
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
 * py-end-of-def-or-class
-   Move point beyond next `def' or `class' definition.
+   Go to the end of def-or-class.
 
-With optional universal arg, move to the end of class exclusively.
 Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-beginning-of-if-block
+   Returns beginning of if-block if successful, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-end-of-if-block
+   Go to the end of if-block.
+
+Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-beginning-of-try-block
+   Returns beginning of try-block if successful, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-end-of-try-block
+   Go to the end of try-block.
+
+Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-beginning-of-minor-block
+   Returns beginning of minor-block if successful, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
+* py-end-of-minor-block
+   Go to the end of minor-block.
+
+Returns position reached, if any, nil otherwise.
+
+Referring python program structures see for example:
+http://docs.python.org/reference/compound_stmts.html
 * py-beginning-of-expression
    Go to the beginning of a compound python expression.
 
@@ -564,6 +595,14 @@ Operators however are left aside resp. limit py-expression designed for edit-pur
 "." operators delimit a minor expression on their level.
 Expression here is conceived as the syntactical component of a statement in Python. See http://docs.python.org/reference
 Operators however are left aside resp. limit py-expression designed for edit-purposes. 
+* py-beginning-of-line
+   Go to beginning-of-line, return position.
+
+If already at beginning-of-line and not at BOB, go to beginning of previous line. 
+* py-end-of-line
+   Go to end-of-line, return position.
+
+If already at end-of-line and not at EOB, go to end of next line. 
 * py-beginning-of-statement
    Go to the initial line of a simple statement.
 
@@ -579,44 +618,51 @@ http://docs.python.org/reference/compound_stmts.html
 To go just beyond the final line of the current statement, use `py-down-statement-lc'. 
 * py-goto-statement-below
    Goto beginning of next statement. 
-* py-mark-expression
-   Mark expression at point.
-
-Returns beginning and end positions of marked area, a cons. 
-* py-mark-partial-expression
-   Mark partial-expression at point.
-
-Returns beginning and end positions of marked area, a cons.
-"." operators delimit a partial-expression expression on it's level, that's the difference to compound expressions. 
-* py-mark-statement
-   Mark statement at point.
+* py-mark-paragraph
+   Mark paragraph at point.
 
 Returns beginning and end positions of marked area, a cons. 
 * py-mark-block
    Mark block at point.
 
 Returns beginning and end positions of marked area, a cons. 
+* py-mark-clause
+   Mark clause at point.
+
+Returns beginning and end positions of marked area, a cons. 
 * py-mark-block-or-clause
    Mark block-or-clause at point.
 
 Returns beginning and end positions of marked area, a cons. 
-* py-mark-def-or-class
-   Mark def-or-class at point.
-
-With universal argument or `py-mark-decorators' set to `t' decorators are marked too.
-Returns beginning and end positions of marked area, a cons.
-* py-mark-class
-   Mark class at point.
-
-With universal argument or `py-mark-decorators' set to `t' decorators are marked too.
-Returns beginning and end positions of marked area, a cons.
 * py-mark-def
    Mark def at point.
 
-With universal argument or `py-mark-decorators' set to `t' decorators are marked too.
-Returns beginning and end positions of marked area, a cons.
-* py-mark-clause
-   Mark clause at point.
+With M-x universal argument or `py-mark-decorators' set to `t', decorators are marked too.
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-class
+   Mark class at point.
+
+With M-x universal argument or `py-mark-decorators' set to `t', decorators are marked too.
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-def-or-class
+   Mark def-or-class at point.
+
+With M-x universal argument or `py-mark-decorators' set to `t', decorators are marked too.
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-line
+   Mark line at point.
+
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-statement
+   Mark statement at point.
+
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-expression
+   Mark expression at point.
+
+Returns beginning and end positions of marked area, a cons. 
+* py-mark-partial-expression
+   Mark partial-expression at point.
 
 Returns beginning and end positions of marked area, a cons. 
 * py-beginning-of-decorator
@@ -842,8 +888,6 @@ With universal arg  insert a `%'.
    Sets `...-completion-command-string' and `py-complete-function'. 
 * py-set-ipython-completion-command-string
    Set and return `ipython-completion-command-string'. 
-* py-set-python-shell-keys
-    
 * py-shell-dedicated
    Start an interactive Python interpreter in another window.
 
@@ -854,12 +898,14 @@ interpreter.
 * py-shell
    Start an interactive Python interpreter in another window.
 
-With optional C-u user is prompted by
-`py-choose-shell' for command and options to pass to the Python
-interpreter.
+Interactively, C-u 4 prompts for a buffer.
+C-u 2 prompts for `py-python-command-args'.
+If `default-directory' is a remote file name, it is also prompted
+to change if called with a prefix arg.
+
 Returns variable `py-process-name' used by function `get-process'.
 Optional string PYSHELLNAME overrides default `py-shell-name'.
-Optional symbol SWITCH ('switch/'noswitch) precedes `py-shell-switch-buffers-on-execute'
+Optional symbol SWITCH ('switch/'noswitch) precedes `py-shell-switch-buffers-on-execute-p'
 
 * python
    Start an Python interpreter.
@@ -1015,12 +1061,12 @@ Per default it's "(format "execfile(r'%s') # PYTHON-MODE\n" filename)" for Pytho
 * py-execute-region-no-switch
    Send the region to a Python interpreter.
 
-Ignores setting of `py-shell-switch-buffers-on-execute', buffer with region stays current.
+Ignores setting of `py-shell-switch-buffers-on-execute-p', buffer with region stays current.
  
 * py-execute-region-switch
    Send the region to a Python interpreter.
 
-Ignores setting of `py-shell-switch-buffers-on-execute', output-buffer will being switched to.
+Ignores setting of `py-shell-switch-buffers-on-execute-p', output-buffer will being switched to.
 
 * py-execute-region
    Send the region to a Python interpreter.
@@ -1052,27 +1098,6 @@ See also `py-execute-region'.
    Send the argument STRING to an unique Python interpreter.
 
 See also `py-execute-region'. 
-* py-shell-command-on-region
-   Execute region in a shell.
-
-Avoids writing to temporary files.
-
-Caveat: Can't be used for expressions containing
-Unicode strings like u'\xA9' 
-* py-ipython-shell-command-on-region
-   Execute region in a shell.
-
-Avoids writing to temporary files.
-
-Caveat: Can't be used for expressions containing
-Unicode strings like u'\xA9' 
-* py-send-region-ipython
-   Execute the region through an ipython shell. 
-* ipython-send-and-indent
-   Send the current line to IPython, and calculate the indentation for
-the next line.
-* py-execute-region-in-shell
-   Execute the region in a Python shell. 
 * py-fetch-py-master-file
    Lookup if a `py-master-file' is specified.
 
@@ -1124,7 +1149,7 @@ See also `M-x py-execute-region'.
 * py-execute-buffer-dedicated-switch
    Send the contents of the buffer to an unique Python interpreter.
 
-Ignores setting of `py-shell-switch-buffers-on-execute'.
+Ignores setting of `py-shell-switch-buffers-on-execute-p'.
 If the file local variable `py-master-file' is non-nil, execute the
 named file instead of the buffer's file.
 
@@ -1135,12 +1160,13 @@ See also `M-x py-execute-region'.
 * py-execute-buffer
    Send the contents of the buffer to a Python interpreter.
 
+When called with M-x univeral-argument, execution through `default-value' of `py-shell-name' is forced.
+When called with M-x univeral-argument followed by a number different from 4 and 1, user is prompted to specify a shell. This might be the name of a system-wide shell or include the path to a virtual environment.
+
 If the file local variable `py-master-file' is non-nil, execute the
 named file instead of the buffer's file.
-If there is a *Python* process buffer, it is used.
-If a clipping restriction is in effect, only the accessible portion of the buffer is sent. A trailing newline will be supplied if needed.
 
-With M-x univeral-argument user is prompted to specify another then default shell.
+When called from a programm, it accepts a string specifying a shell which will be forced upon execute as argument.
 
 When called from a programm, it accepts a string specifying a shell which will be forced upon execute as argument.
 
@@ -1167,26 +1193,44 @@ Optional OUTPUT-BUFFER and ERROR-BUFFER might be given.
    Process "python filename",
 Optional OUTPUT-BUFFER and ERROR-BUFFER might be given.')
 
-* py-execute-block
-   Send python-form at point as is to Python interpreter. 
-* py-execute-block-or-clause
-   Send python-form at point as is to Python interpreter. 
-* py-execute-class
-   Send python-form at point as is to Python interpreter. 
-* py-execute-clause
-   Send python-form at point as is to Python interpreter. 
-* py-execute-def
-   Send python-form at point as is to Python interpreter. 
-* py-execute-def-or-class
-   Send python-form at point as is to Python interpreter. 
-* py-execute-expression
-   Send python-form at point as is to Python interpreter. 
-* py-execute-partial-expression
-   Send python-form at point as is to Python interpreter. 
 * py-execute-statement
-   Send python-form at point as is to Python interpreter. 
+   Send statement at point to Python interpreter. 
+* py-execute-block
+   Send block at point to Python interpreter. 
+* py-execute-clause
+   Send clause at point to Python interpreter. 
+* py-execute-block-or-clause
+   Send block-or-clause at point to Python interpreter. 
+* py-execute-def
+   Send def at point to Python interpreter. 
+* py-execute-class
+   Send class at point to Python interpreter. 
+* py-execute-def-or-class
+   Send def-or-class at point to a Python interpreter.
+
+When called with M-x univeral-argument, execution through `default-value' of `py-shell-name' is forced.
+
+When called with M-x univeral-argument followed by a number different from 4 and 1, user is prompted to specify a shell. This might be the name of a system-wide shell or include the path to a virtual environment.
+
+When called from a programm, it accepts a string specifying a shell which will be forced upon execute as argument.
+
+Optional arguments DEDICATED (boolean) and SWITCH (symbols 'noswitch/'switch)
+* py-execute-expression
+   Send expression at point to Python interpreter. 
+* py-execute-partial-expression
+   Send partial-expression at point to a Python interpreter.
+
+When called with M-x univeral-argument, execution through `default-value' of `py-shell-name' is forced.
+
+When called with M-x univeral-argument followed by a number different from 4 and 1, user is prompted to specify a shell. This might be the name of a system-wide shell or include the path to a virtual environment.
+
+When called from a programm, it accepts a string specifying a shell which will be forced upon execute as argument.
+
+Optional arguments DEDICATED (boolean) and SWITCH (symbols 'noswitch/'switch)
+* py-execute-line
+   Send current line from beginning of indent to Python interpreter. 
 * py-execute-file
-   
+   When called interactively, user is prompted for filename. 
 * py-down-exception
    Go to the next line down in the traceback.
 
@@ -1219,7 +1263,7 @@ Useful for newly defined symbol, not known to python yet.
 * py-describe-symbol
    Print help on symbol at point. 
 * py-describe-mode
-   Dump long form of Python-mode docs.
+   Dump long form of `python-mode' docs.
 * py-find-function
    Find source of definition of function NAME.
 
@@ -1271,12 +1315,12 @@ With interactive call, send it to the message buffer too.
 
 Otherwise insert the character, the key is assigned to, here `%'.
 With universal arg  insert a `%'. 
+* py-printform-insert
+   Inserts a print statement out of current `(car kill-ring)' by default, inserts ARG instead if delivered. 
 * eva
    Put "eval(...)" forms around strings at point. 
 * pst-here
    Kill previous "pdb.set_trace()" and insert it at point. 
-* py-printform-insert
-   Inserts a print statement out of current `(car kill-ring)' by default, inserts ARG instead if delivered. 
 * py-line-to-printform-python2
    Transforms the item on current in a print statement. 
 * py-switch-imenu-index-function
@@ -1286,7 +1330,7 @@ Switch between classic index machine `py-imenu-create-index'-function and new `p
 
 The former may provide a more detailed report, thus delivering two different index-machines is considered. 
 * py-completion-at-point
-   
+   An alternative completion, similar the way python.el does it. 
 * py-choose-shell-by-shebang
    Choose shell by looking at #! on the first line.
 
@@ -1295,13 +1339,13 @@ Returns the specified Python resp. Jython shell command name.
    Returns version of Python of current environment, a number. 
 * py-python-current-environment
    Returns path of current Python installation. 
-* py-switch-shells
+* py-switch-shell
    Toggles between the interpreter customized in `py-shell-toggle-1' resp. `py-shell-toggle-2'. Was hard-coded CPython and Jython in earlier versions, now starts with Python2 and Python3 by default.
 
 ARG might be a python-version string to set to.
 
-C-u `py-toggle-shells' prompts to specify a reachable Python command.
-C-u followed by numerical arg 2 or 3, `py-toggle-shells' opens a respective Python shell.
+C-u `py-toggle-shell' prompts to specify a reachable Python command.
+C-u followed by numerical arg 2 or 3, `py-toggle-shell' opens a respective Python shell.
 C-u followed by numerical arg 5 opens a Jython shell.
 
 Should you need more shells to select, extend this command by adding inside the first cond:
@@ -1321,8 +1365,52 @@ This does the following:
 
 When interactivly called, messages the shell name, Emacs would in the given circtumstances.
 
-To change the default Python interpreter, use `py-switch-shell'.
+With C-u 4 is called `py-switch-shell' see docu there.
 
+* py-toggle-smart-indentation
+   If `py-smart-indentation' should be on or off.
+
+Returns value of `py-smart-indentation' switched to. 
+* py-smart-indentation-on
+   Make sure, `py-smart-indentation' is on.
+
+Returns value of `py-smart-indentation'. 
+* py-smart-indentation-off
+   Make sure, `py-smart-indentation' is off.
+
+Returns value of `py-smart-indentation'. 
+* py-toggle-split-windows-on-execute
+   If `py-split-windows-on-execute-p' should be on or off.
+
+  Returns value of `py-split-windows-on-execute-p' switched to. 
+* py-split-windows-on-execute-on
+   Make sure, `py-split-windows-on-execute-p' is on.
+
+Returns value of `py-split-windows-on-execute-p'. 
+* py-split-windows-on-execute-off
+   Make sure, `py-split-windows-on-execute-p' is off.
+
+Returns value of `py-split-windows-on-execute-p'. 
+* py-toggle-shell-switch-buffers-on-execute
+   If `py-shell-switch-buffers-on-execute-p' should be on or off.
+
+  Returns value of `py-shell-switch-buffers-on-execute-p' switched to. 
+* py-shell-switch-buffers-on-execute-on
+   Make sure, `py-shell-switch-buffers-on-execute-p' is on.
+
+Returns value of `py-shell-switch-buffers-on-execute-p'. 
+* py-shell-switch-buffers-on-execute-off
+   Make sure, `py-shell-switch-buffers-on-execute-p' is off.
+
+Returns value of `py-shell-switch-buffers-on-execute-p'. 
+* py-normalize-py-install-directory
+   Make sure `py-install-directory' ends with a file-path separator.
+
+Returns `py-install-directory' 
+* py-install-directory-check
+   Do some sanity check for `py-install-directory'.
+
+Returns `t' if successful. 
 * py-load-pymacs
    Load Pymacs as delivered with python-mode.el.
 
@@ -1342,6 +1430,11 @@ See original source: http://pymacs.progiciels-bpi.ca
    Returns end position of statement. 
 * py-current-indentation
    Returns beginning position of code in line. 
+* py-python-version
+   Returns versions number of a Python EXECUTABLE, string.
+
+If no EXECUTABLE given, `py-shell-name' is used.
+Interactively output of `--version' is displayed. 
 * py-version
    Echo the current version of `python-mode' in the minibuffer.
 * run-python
@@ -1398,6 +1491,7 @@ in a buffer that doesn't have a local value of `python-buffer'.
 * ipython-complete
    Complete the python symbol before point.
 
+If no completion available, insert a TAB.
 Returns the completed symbol, a string, if successful, nil otherwise.
 * py-pychecker-run
    *Run pychecker (default on the file currently visited).
@@ -2041,73 +2135,73 @@ Returns the completed symbol, a string, if successful, nil otherwise.
    Send expression at point to Python3.2 interpreter. 
 * py-execute-expression-python3\.2-dedicated-switch
    Send expression at point to Python3.2 interpreter. 
-* py-execute-minor-expression-python
-   Send minor-expression at point to Python interpreter. 
-* py-execute-minor-expression-python-switch
-   Send minor-expression at point to Python interpreter. 
-* py-execute-minor-expression-python-noswitch
-   Send minor-expression at point to Python interpreter. 
-* py-execute-minor-expression-python-dedicated
-   Send minor-expression at point to Python interpreter. 
-* py-execute-minor-expression-python-dedicated-switch
-   Send minor-expression at point to Python interpreter. 
-* py-execute-minor-expression-ipython
-   Send minor-expression at point to IPython interpreter. 
-* py-execute-minor-expression-ipython-switch
-   Send minor-expression at point to IPython interpreter. 
-* py-execute-minor-expression-ipython-noswitch
-   Send minor-expression at point to IPython interpreter. 
-* py-execute-minor-expression-ipython-dedicated
-   Send minor-expression at point to IPython interpreter. 
-* py-execute-minor-expression-ipython-dedicated-switch
-   Send minor-expression at point to IPython interpreter. 
-* py-execute-minor-expression-python3
-   Send minor-expression at point to Python3 interpreter. 
-* py-execute-minor-expression-python3-switch
-   Send minor-expression at point to Python3 interpreter. 
-* py-execute-minor-expression-python3-noswitch
-   Send minor-expression at point to Python3 interpreter. 
-* py-execute-minor-expression-python3-dedicated
-   Send minor-expression at point to Python3 interpreter. 
-* py-execute-minor-expression-python3-dedicated-switch
-   Send minor-expression at point to Python3 interpreter. 
-* py-execute-minor-expression-python2
-   Send minor-expression at point to Python2 interpreter. 
-* py-execute-minor-expression-python2-switch
-   Send minor-expression at point to Python2 interpreter. 
-* py-execute-minor-expression-python2-noswitch
-   Send minor-expression at point to Python2 interpreter. 
-* py-execute-minor-expression-python2-dedicated
-   Send minor-expression at point to Python2 interpreter. 
-* py-execute-minor-expression-python2-dedicated-switch
-   Send minor-expression at point to Python2 interpreter. 
-* py-execute-minor-expression-python2\.7
-   Send minor-expression at point to Python2.7 interpreter. 
-* py-execute-minor-expression-python2\.7-switch
-   Send minor-expression at point to Python2.7 interpreter. 
-* py-execute-minor-expression-python2\.7-noswitch
-   Send minor-expression at point to Python2.7 interpreter. 
-* py-execute-minor-expression-python2\.7-dedicated
-   Send minor-expression at point to Python2.7 interpreter. 
-* py-execute-minor-expression-python2\.7-dedicated-switch
-   Send minor-expression at point to Python2.7 interpreter. 
-* py-execute-minor-expression-jython
-   Send minor-expression at point to Jython interpreter. 
-* py-execute-minor-expression-jython-switch
-   Send minor-expression at point to Jython interpreter. 
-* py-execute-minor-expression-jython-noswitch
-   Send minor-expression at point to Jython interpreter. 
-* py-execute-minor-expression-jython-dedicated
-   Send minor-expression at point to Jython interpreter. 
-* py-execute-minor-expression-jython-dedicated-switch
-   Send minor-expression at point to Jython interpreter. 
-* py-execute-minor-expression-python3\.2
-   Send minor-expression at point to Python3.2 interpreter. 
-* py-execute-minor-expression-python3\.2-switch
-   Send minor-expression at point to Python3.2 interpreter. 
-* py-execute-minor-expression-python3\.2-noswitch
-   Send minor-expression at point to Python3.2 interpreter. 
-* py-execute-minor-expression-python3\.2-dedicated
-   Send minor-expression at point to Python3.2 interpreter. 
-* py-execute-minor-expression-python3\.2-dedicated-switch
-   Send minor-expression at point to Python3.2 interpreter. 
+* py-execute-partial-expression-python
+   Send partial-expression at point to Python interpreter. 
+* py-execute-partial-expression-python-switch
+   Send partial-expression at point to Python interpreter. 
+* py-execute-partial-expression-python-noswitch
+   Send partial-expression at point to Python interpreter. 
+* py-execute-partial-expression-python-dedicated
+   Send partial-expression at point to Python interpreter. 
+* py-execute-partial-expression-python-dedicated-switch
+   Send partial-expression at point to Python interpreter. 
+* py-execute-partial-expression-ipython
+   Send partial-expression at point to IPython interpreter. 
+* py-execute-partial-expression-ipython-switch
+   Send partial-expression at point to IPython interpreter. 
+* py-execute-partial-expression-ipython-noswitch
+   Send partial-expression at point to IPython interpreter. 
+* py-execute-partial-expression-ipython-dedicated
+   Send partial-expression at point to IPython interpreter. 
+* py-execute-partial-expression-ipython-dedicated-switch
+   Send partial-expression at point to IPython interpreter. 
+* py-execute-partial-expression-python3
+   Send partial-expression at point to Python3 interpreter. 
+* py-execute-partial-expression-python3-switch
+   Send partial-expression at point to Python3 interpreter. 
+* py-execute-partial-expression-python3-noswitch
+   Send partial-expression at point to Python3 interpreter. 
+* py-execute-partial-expression-python3-dedicated
+   Send partial-expression at point to Python3 interpreter. 
+* py-execute-partial-expression-python3-dedicated-switch
+   Send partial-expression at point to Python3 interpreter. 
+* py-execute-partial-expression-python2
+   Send partial-expression at point to Python2 interpreter. 
+* py-execute-partial-expression-python2-switch
+   Send partial-expression at point to Python2 interpreter. 
+* py-execute-partial-expression-python2-noswitch
+   Send partial-expression at point to Python2 interpreter. 
+* py-execute-partial-expression-python2-dedicated
+   Send partial-expression at point to Python2 interpreter. 
+* py-execute-partial-expression-python2-dedicated-switch
+   Send partial-expression at point to Python2 interpreter. 
+* py-execute-partial-expression-python2\.7
+   Send partial-expression at point to Python2.7 interpreter. 
+* py-execute-partial-expression-python2\.7-switch
+   Send partial-expression at point to Python2.7 interpreter. 
+* py-execute-partial-expression-python2\.7-noswitch
+   Send partial-expression at point to Python2.7 interpreter. 
+* py-execute-partial-expression-python2\.7-dedicated
+   Send partial-expression at point to Python2.7 interpreter. 
+* py-execute-partial-expression-python2\.7-dedicated-switch
+   Send partial-expression at point to Python2.7 interpreter. 
+* py-execute-partial-expression-jython
+   Send partial-expression at point to Jython interpreter. 
+* py-execute-partial-expression-jython-switch
+   Send partial-expression at point to Jython interpreter. 
+* py-execute-partial-expression-jython-noswitch
+   Send partial-expression at point to Jython interpreter. 
+* py-execute-partial-expression-jython-dedicated
+   Send partial-expression at point to Jython interpreter. 
+* py-execute-partial-expression-jython-dedicated-switch
+   Send partial-expression at point to Jython interpreter. 
+* py-execute-partial-expression-python3\.2
+   Send partial-expression at point to Python3.2 interpreter. 
+* py-execute-partial-expression-python3\.2-switch
+   Send partial-expression at point to Python3.2 interpreter. 
+* py-execute-partial-expression-python3\.2-noswitch
+   Send partial-expression at point to Python3.2 interpreter. 
+* py-execute-partial-expression-python3\.2-dedicated
+   Send partial-expression at point to Python3.2 interpreter. 
+* py-execute-partial-expression-python3\.2-dedicated-switch
+   Send partial-expression at point to Python3.2 interpreter. 

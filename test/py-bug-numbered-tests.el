@@ -119,37 +119,77 @@
          'from-__future__-import-absolute_import-mishighlighted-lp-907084-test
          'automatic-indentation-is-broken-lp-889643-test
          'chars-uU-preceding-triple-quoted-get-string-face-lp-909517-test
+         'tuple-unpacking-highlighted-incorrectly-lp-961496-test
+
          'wrong-type-argument-lp-901541-test
          'py-pychecker-run-missing-lp-910783-test
          'py-forward-into-nomenclature-lp-916818-test
          'py-forward-into-nomenclature-jumps-over-CamelCased-words-lp:919540-test
          'py-backward-into-nomenclature-caps-names-lp:919541-test
          'execute-buffer-ipython-fails-lp:928087-test
-         'UnicodeEncodeError-lp:550661-test
+         'py-indent-comments-nil-ignored-lp-958721-test
+         'broken-font-locking-lp-961231-test
+         'regression-in-py-execute-region-lp-962227-test
+
+         'py-shell-invoking-python-lp:835151-test
+         'py-shell-invoking-ipython-lp:835151-test
+         'py-shell-invoking-python3-lp:835151-test
+         'py-shell-invoking-python2-lp:835151-test
+         'py-shell-invoking-python2.7-lp:835151-test
+         'py-shell-invoking-jython-lp:835151-test
+
+         'py-mark-block-clause-misbehave-lp-949310-test
+         'py-mark-clause-misbehave-lp-949310-test
+         'py-mark-block-misbehave-lp-949310-test
+
+         'UnicodeEncodeError-lp-550661-test
          'py-shell-complete-lp-328836-test)))
 
-(defun py-bug-tests-intern (testname &optional arg teststring)
-  (let (py-load-pymacs-p)
-    (if arg
-        (progn
-          (set-buffer (get-buffer-create (replace-regexp-in-string "-base$" "-test" (prin1-to-string testname))))
-          (switch-to-buffer (current-buffer))
-          (erase-buffer)
-          (fundamental-mode)
-          (insert teststring)
-          (python-mode)
-          (funcall testname)
-          (message "%s" (concat (replace-regexp-in-string "-base$" "-test" (prin1-to-string testname)) " passed"))
-          (unless (< 1 arg)
-            (set-buffer-modified-p 'nil)
-            ;; (cond ((processp (get-process "Python3")) (kill-process "Python3"))
-            ;; ((processp (get-process "Python2")) (kill-process "Python2"))
-            ;; ((processp (get-process "Python")) (ignore-errors (kill-process "Python"))))
-            (kill-buffer (current-buffer))))
-      (with-temp-buffer
-        (let ((font-lock-verbose nil))
-          (insert teststring)
-          (funcall testname))))))
+(defmacro py-bug-tests-intern (testname &optional arg teststring)
+  `(let (py-load-pymacs-p
+         py-split-windows-on-execute-p
+         py-shell-switch-buffers-on-execute-p)
+     (set-buffer (get-buffer-create (replace-regexp-in-string "-base$" "-test" (prin1-to-string ,testname))))
+     ;; (with-temp-buffer
+     (switch-to-buffer (current-buffer))
+     (delete-other-windows)
+     (erase-buffer)
+     (fundamental-mode)
+     (insert ,teststring)
+     (local-unset-key (kbd "RET"))
+     (python-mode)
+     (funcall ,testname)
+     (message "%s" (concat (replace-regexp-in-string "-base$" "-test" (prin1-to-string ,testname)) " passed"))
+     (unless (< 1 arg)
+       (set-buffer-modified-p 'nil)
+       (kill-buffer (current-buffer)))))
+
+;; (defun py-bug-tests-intern (testname &optional arg teststring)
+;;   (let (py-load-pymacs-p
+;;         py-split-windows-on-execute-p
+;;         py-shell-switch-buffers-on-execute-p)
+;;     (if arg
+;;         (progn
+;;           (set-buffer (get-buffer-create (replace-regexp-in-string "-base$" "-test" (prin1-to-string testname))))
+;;           (delete-other-windows)
+;;           (switch-to-buffer (current-buffer))
+;;           (erase-buffer)
+;;           (fundamental-mode)
+;;           (insert teststring)
+;;           (python-mode)
+;;           (funcall testname)
+;;           (message "%s" (concat (replace-regexp-in-string "-base$" "-test" (prin1-to-string testname)) " passed"))
+;;           (unless (< 1 arg)
+;;             (set-buffer-modified-p 'nil)
+;;             ;; (cond ((processp (get-process "Python3")) (kill-process "Python3"))
+;;             ;; ((processp (get-process "Python2")) (kill-process "Python2"))
+;;             ;; ((processp (get-process "Python")) (ignore-errors (kill-process "Python"))))
+;;             (kill-buffer (current-buffer))))
+;;       (with-temp-buffer
+;;         (let ((font-lock-verbose nil))
+;;           (delete-other-windows)
+;;           (insert teststring)
+;;           (funcall testname))))))
 
 (defvar python-mode-teststring "class OrderedDict1(dict):
     \"\"\"
@@ -618,16 +658,16 @@ If no `load-branch-function' is specified, make sure the appropriate branch is l
   (py-hungry-delete-forward)
   (assert (looking-at "#") nil "hungry-delete-backwards test failed"))
 
-(defun UnicodeEncodeError-lp:550661-test (&optional arg load-branch-function)
+(defun UnicodeEncodeError-lp-550661-test (&optional arg load-branch-function)
   (interactive "p")
   (let ((teststring "#! /usr/bin/env python
 # -\*- coding: utf-8 -\*-
 print u'\\xA9'
 "))
     (when load-branch-function (funcall load-branch-function))
-    (py-bug-tests-intern 'UnicodeEncodeError-lp:550661-base 2 teststring)))
+    (py-bug-tests-intern 'UnicodeEncodeError-lp-550661-base 2 teststring)))
 
-(defun UnicodeEncodeError-lp:550661-base ()
+(defun UnicodeEncodeError-lp-550661-base ()
   (goto-char 48)
   (push-mark)
   (end-of-line)
@@ -636,7 +676,7 @@ print u'\\xA9'
   (when (looking-back comint-prompt-regexp)
     (goto-char (1- (match-beginning 0))))
   (sit-for 0.1)
-  (assert (or (looking-back "©")(looking-at "©")) nil "UnicodeEncodeError-lp:550661-test failed"))
+  (assert (or (looking-back "©")(looking-at "©")) nil "UnicodeEncodeError-lp-550661-test failed"))
 
 (defun indentation-of-continuation-lines-lp:691185-test (&optional arg load-branch-function)
   "With ARG greater 1 keep test buffer open.
@@ -716,9 +756,9 @@ If no `load-branch-function' is specified, make sure the appropriate branch is l
   (goto-char 34)
   (sit-for 0.1)
   ;; (debug-on-entry 'py-compute-indentation)
-  (assert (eq 8 (py-compute-indentation)) nil "fore-00007F-breaks-indentation-test #1 failed")
+  (assert (eq 8 (py-compute-indentation)) nil "fore-00007F-breaks-indentation-lp:328788-test #1 failed")
   (goto-char 121)
-  (assert (eq 8 (py-compute-indentation)) nil "fore-00007F-breaks-indentation-test #2 failed"))
+  (assert (eq 8 (py-compute-indentation)) nil "fore-00007F-breaks-indentation-lp:328788-test #2 failed"))
 
 (defun exceptions-not-highlighted-lp:473525-test (&optional arg load-branch-function)
   "With ARG greater 1 keep test buffer open.
@@ -888,6 +928,7 @@ If no `load-branch-function' is specified, make sure the appropriate branch is l
 
 (defun indent-triplequoted-to-itself-lp:752252-base ()
   (sit-for 0.1)
+  ;; (message "(py-compute-indentation): %s" (py-compute-indentation))
   (assert (eq 4 (py-compute-indentation)) nil "indent-triplequoted-to-itself-lp:752252-test failed"))
 
 (defun multiline-listings-indent-lp:761946-test (&optional arg load-branch-function)
@@ -967,12 +1008,12 @@ If no `load-branch-function' is specified, make sure the appropriate branch is l
 # character following the open paren.
 
 def foo():
-    thing = call_it(with_something,"))
+    thing = call_it(with_something,
+"))
     (when load-branch-function (funcall load-branch-function))
     (py-bug-tests-intern 'indent-open-paren-not-last-lp:771291-base arg teststring)))
 
 (defun indent-open-paren-not-last-lp:771291-base ()
-  (newline-and-indent)
   (assert (eq 20 (py-compute-indentation)) nil "indent-open-paren-not-last-lp:771291-test failed"))
 
 (defun wrong-indent-after-else-lp:772610-test (&optional arg load-branch-function)
@@ -1025,8 +1066,7 @@ except:
     (py-bug-tests-intern 'unbalanced-parentheses-lp:784645-base arg teststring)))
 
 (defun unbalanced-parentheses-lp:784645-base ()
-  (goto-char 27)
-  (newline-and-indent)
+  (goto-char 40)
   (assert (eq 4 (py-compute-indentation)) nil "unbalanced-parentheses-lp:784645-test failed"))
 
 (defun explicitly-indent-in-list-lp:785018-test (&optional arg load-branch-function)
@@ -1567,7 +1607,8 @@ if foo:
     (push-mark)
     (progn
       (py-execute-base (point) (progn (end-of-line)(point)))
-      (when (interactive-p) (message "%s" "execute-indented-code-lp:828314-test passed")))))
+      ;; (when (interactive-p) (message "%s" "execute-indented-code-lp:828314-test passed"))
+      )))
 
 (defun wrong-indentation-of-function-arguments-lp:840891-test (&optional arg load-branch-function)
   (interactive "p")
@@ -2057,7 +2098,9 @@ def foo():
 
 (defun indentation-bug-inside-docstrings-lp-899455-base ()
   (goto-char 742)
-  (sit-for 0.1)
+  ;; (message "%s" "indentation-bug-inside-docstrings-lp-899455-test")
+  ;; (message "(py-compute-indentation) should 8: %s" (py-compute-indentation))
+  (sit-for 0.2)
   (assert (eq 8 (py-compute-indentation)) nil "indentation-bug-inside-docstrings-lp-899455-test failed"))
 
 (defun another-indentation-bug-inside-docstrings-lp:900684-test (&optional arg load-branch-function)
@@ -2092,7 +2135,8 @@ def main():
     (py-bug-tests-intern 'indent-offset-not-guessed-when-loading-lp:902890-base arg teststring)))
 
 (defun indent-offset-not-guessed-when-loading-lp:902890-base ()
-  (assert (eq 2 py-indent-offset) nil "indent-offset-not-guessed-when-loading-lp:902890-test failed"))
+  "This doesn't check precisely the feature requested. "
+  (assert (eq 2 (py-guess-indent-offset)) nil "indent-offset-not-guessed-when-loading-lp:902890-test failed"))
 
 (defun from-__future__-import-absolute_import-mishighlighted-lp-907084-test (&optional arg load-branch-function)
   (interactive "p")
@@ -2154,6 +2198,9 @@ This module is an optparse-inspired command-line parsing library that:
 
 (defun wrong-type-argument-lp-901541-base ()
   (goto-char 385)
+  (sit-for 0.1)
+  ;; (message "%s" "wrong-type-argument-lp-901541-test")
+  ;; (message "(py-compute-indentation): should 4: %s" (py-compute-indentation))
   (assert (eq 4 (py-compute-indentation)) nil "wrong-type-argument-lp-901541-test failed"))
 
 (defun py-pychecker-run-missing-lp-910783-test (&optional arg load-branch-function)
@@ -2236,6 +2283,7 @@ return SOME_Constant + blah
 (defun py-ipython-complete-lp:927136-test (&optional arg load-branch-function)
   (interactive "p")
   (py-shell nil nil "ipython" 'noswitch)
+  (sit-for 0.1)
   (let ((teststring "#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 impo"))
@@ -2256,8 +2304,306 @@ print u'\\xA9'
     (py-bug-tests-intern 'execute-buffer-ipython-fails-lp:928087-base arg teststring)))
 
 (defun execute-buffer-ipython-fails-lp:928087-base ()
-  (assert (numberp (py-execute-buffer)) nil "execute-buffer-ipython-fails-lp:928087-test failed"))
+  (let (py-split-windows-on-execute-p
+        py-shell-switch-buffers-on-execute-p)
+    (assert (py-execute-buffer) nil "execute-buffer-ipython-fails-lp:928087-test failed")))
 
+(defun fourth-level-blocks-indent-incorrectly-lp-939577-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+for x in y:
+    for z in l:
+        for r in t:
+                pass # <--- indents here. Pressing <backspace> dedents eight spaces (i.e. you can go to column 0 in two presess)
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'fourth-level-blocks-indent-incorrectly-lp-939577-base arg teststring)))
+
+(defun fourth-level-blocks-indent-incorrectly-lp-939577-base ()
+  (goto-char 88)
+  (assert (eq 4 (py-guess-indent-offset)) nil "fourth-level-blocks-indent-incorrectly-lp-939577-test failed")
+  (goto-char 225)
+  (assert (eq 8 (py-guess-indent-offset)) nil "fourth-level-blocks-indent-incorrectly-lp-939577-test failed")
+  )
+
+(defun py-mark-expression-marks-too-much-lp-941140-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -\*-
+  somevar = \"some string\"
+  # some code
+
+# when point is on the first quote, calling py-mark-expression marks the next several lines, no matter what they are.
+
+# This only seems to happen when point is in the first quote of a string literal which is the last thing on a
+line.
+
+  somevar = \"some string\".some_property()
+  # point at first quote works
+
+  somevar = \"a\" + \"b\"
+  # works at quote before a, fails at quote before b
+
+I am using version 6.0.4
+
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-mark-expression-marks-too-much-lp-941140-base arg teststring)))
+
+(defun py-mark-expression-marks-too-much-lp-941140-base ()
+  (goto-char 60)
+  (assert (eq 73 (cdr (py-expression))) nil "py-mark-expression-marks-too-much-lp-941140-test failed")
+  (goto-char 417)
+  (assert (eq 420 (cdr (py-expression))) nil "py-mark-expression-marks-too-much-lp-941140-test failed")
+  )
+
+;;; Py-shell tests
+(defun py-shell-invoking-python-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: python\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-python-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-python-lp:835151-base ()
+  (setq py-shell-name "python")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-python-lp:835151-test failed"))
+
+(defun py-shell-invoking-ipython-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: ipython\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-ipython-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-ipython-lp:835151-base ()
+  (setq py-shell-name "ipython")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-ipython-lp:835151-test failed"))
+
+(defun py-shell-invoking-python3-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: python3\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-python3-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-python3-lp:835151-base ()
+  (setq py-shell-name "python3")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-python3-lp:835151-test failed"))
+
+(defun py-shell-invoking-python2-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: python2\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-python2-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-python2-lp:835151-base ()
+  (setq py-shell-name "python2")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-python2-lp:835151-test failed"))
+
+(defun py-shell-invoking-python2.7-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: python2.7\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-python2.7-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-python2.7-lp:835151-base ()
+  (setq py-shell-name "python2.7")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-python2.7-lp:835151-test failed"))
+
+(defun py-shell-invoking-jython-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: jython\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-jython-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-jython-lp:835151-base ()
+  (setq py-shell-name "jython")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-jython-lp:835151-test failed"))
+
+(defun py-shell-invoking-python3.2-lp:835151-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "print(\"py-shell-name: python3.2\")"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-shell-invoking-python3.2-lp:835151-base arg teststring)))
+
+(defun py-shell-invoking-python3.2-lp:835151-base ()
+  (setq py-shell-name "python3.2")
+  (assert (markerp (py-execute-buffer)) nil "py-shell-invoking-python3.2-lp:835151-test failed"))
+
+(defun py-mark-block-clause-misbehave-lp-949310-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring " if foo:
+    try:
+        pass
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-mark-block-clause-misbehave-lp-949310-base arg teststring)))
+
+(defun py-mark-block-clause-misbehave-lp-949310-base ()
+  (goto-char 15)
+  (assert (eq 14 (car (py-mark-block-or-clause))) nil "py-mark-block-clause-misbehave-lp-949310-test failed"))
+
+(defun py-mark-clause-misbehave-lp-949310-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring " if foo:
+    try:
+        pass
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-mark-clause-misbehave-lp-949310-base arg teststring)))
+
+(defun py-mark-clause-misbehave-lp-949310-base ()
+  (goto-char 15)
+  (assert (eq 14 (car (py-mark-block-or-clause))) nil "py-mark-clause-misbehave-lp-949310-test failed"))
+
+(defun py-mark-block-misbehave-lp-949310-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring " if foo:
+    try:
+        pass
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-mark-block-misbehave-lp-949310-base arg teststring)))
+
+(defun py-mark-block-misbehave-lp-949310-base ()
+  (goto-char 15)
+  (assert (eq 14 (car (py-mark-block-or-clause))) nil "py-mark-block-misbehave-lp-949310-test failed"))
+
+(defun py-indent-comments-nil-ignored-lp-958721-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let (py-indent-comments
+        (teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+if x > 0:
+    for i in range(100):
+        # print i
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'py-indent-comments-nil-ignored-lp-958721-base arg teststring)))
+
+(defun py-indent-comments-nil-ignored-lp-958721-base ()
+  (goto-char 83)
+  (assert (eq 0 (py-compute-indentation)) nil "py-indent-comments-nil-ignored-lp-958721-test failed"))
+
+(defun broken-font-locking-lp-961231-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+def baz():
+    foo = None
+    bar = False
+    baz = True
+    foo, bar, baz = baz()
+    return foo, bar, baz
+
+# None, False, and True get colored with font-lock-constant-face instead of py-pseudo-keyword-face
+
+# On the second to last line, \"foo\" \"bar\" and \"baz\" all get colored with font-lock-variable-name-face whereas
+# I think they should get default face, just as they would if no comma or equal sign appeared on the line.
+
+def baz(mydict):
+    mydict['hello'] = 'baz'
+
+    # 'mydict' gets colored with font-lock-variable-name-face but it should be default face.
+
+def baz(self):
+    self.baz = 'hello'
+
+    # 'self' gets colored with font-lock-keyword-face instead of py-pseudo-keyword-face
+
+def baz(self):
+    return set(range(100))
+
+# 'set' and 'range' get rendered in font-lock-builtin-face when they should get rendered in py-builtins-face
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'broken-font-locking-lp-961231-base arg teststring)))
+
+(defun broken-font-locking-lp-961231-base ()
+  (font-lock-fontify-buffer)
+  (sit-for 0.1)
+  (goto-char 87)
+  (assert (eq (get-char-property (point) 'face) 'py-pseudo-keyword-face) nil "broken-font-locking-lp-961231-test #1 failed")
+  (goto-char 488)
+  (assert (eq (get-char-property (point) 'face) 'nil) nil "broken-font-locking-lp-961231-test #2 failed")
+  (goto-char 637)
+  (assert (eq (get-char-property (point) 'face) 'py-pseudo-keyword-face) nil "broken-font-locking-lp-961231-test #3 failed")
+  (goto-char 775)
+  (assert (eq (get-char-property (point) 'face) 'py-builtins-face) nil "broken-font-locking-lp-961231-test #4 failed"))
+
+(defun regression-in-py-execute-region-lp-962227-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+def foo():
+    def bar():
+        return True
+    return bar
+
+# In the past it was possible to highlight the middle two lines and run py-execute-region. This would have
+# the effect of defining bar() at global scope, but that's okay since it was explicitly asked for. Now
+# however you get this error in the Python buffer:
+
+# >>> Traceback (most recent call last):
+# File \"<stdin>\", line 1, in <module>
+# File \"/tmp/Python4249aED.py\", line 8
+# return True
+# ^
+# IndentationError: expected an indented block
+
+# which perhaps makes sense, but isn't helpful. What python-mode used to do was, if the block to be executed
+# was indented, it would still a \"if True:\" line indented to column zero in front of the region to be
+# executed. This is essentially a no-op that just makes the indented region valid syntactically.
+
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'regression-in-py-execute-region-lp-962227-base arg teststring)))
+
+(defun regression-in-py-execute-region-lp-962227-base ()
+  (goto-char 59)
+  (push-mark)
+  (goto-char 93)
+  (assert (py-execute-region 59 93) nil "regression-in-py-execute-region-lp-962227-test failed"))
+
+(defun auto-indent-behaves-strangely-with-slices-lp-961684.txt-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# In the final line of the following, I want the line not to be indented at
+# all (the loop in the preceding lines is complete). But if you type a :
+# after the 1 to form potential.difference(set(S[1]:)), this activates the
+# automatic indentation and incorrectly indents the line under the
+# preceding line in the for loop.
+potential = set([])
+for j in X:
+    potential = potential.union(visible[j])
+potential = potential.difference(set(S[1]))
+
+# py-electric-colon-active-p is t.
+
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'auto-indent-behaves-strangely-with-slices-lp-961684.txt-base arg teststring)))
+
+(defun auto-indent-behaves-strangely-with-slices-lp-961684.txt-base ()
+  (goto-char 40)
+  (assert (eq 0 (py-compute-indentation)) nil "auto-indent-behaves-strangely-with-slices-lp-961684.txt-test failed"))
+
+(defun tuple-unpacking-highlighted-incorrectly-lp-961496-test (&optional arg load-branch-function)
+  (interactive "p")
+  (let ((teststring "#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+foo, bar = toothpick
+"))
+    (when load-branch-function (funcall load-branch-function))
+    (py-bug-tests-intern 'tuple-unpacking-highlighted-incorrectly-lp-961496-base arg teststring)))
+
+(defun tuple-unpacking-highlighted-incorrectly-lp-961496-base ()
+  (font-lock-fontify-buffer)
+  (sit-for 0.1)
+  (goto-char 50)
+  (assert (eq (get-char-property (point) 'face) 'py-variable-name-face) nil "tuple-unpacking-highlighted-incorrectly-lp-961496-test failed"))
 
 (provide 'py-bug-numbered-tests)
 ;;; py-bug-numbered-tests.el ends here
+
