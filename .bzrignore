@@ -4,3 +4,5 @@ Makefile
 *.elc
 setup.py
 commit.txt
+test/python-mode-script-completion-test.sh
+python-mode-compile.sh
